@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PulseAI HR prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f4f6fb;--surface:#fff;--ink:#14213d;--muted:#5b6784;--line:#dde2ee;--accent:#1b2a5b;--accent-ink:#fff;--mark:#f2a900;--ok:#17744a;--bad:#b3261e;--okbg:#e3f4ea;--badbg:#fbe6e4;--pend:#fff3d1;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1426;--surface:#182038;--ink:#e8ecf8;--muted:#9aa6c4;--line:#2a3558;--accent:#f2a900;--accent-ink:#14213d;--mark:#f2a900;--ok:#6fd6a0;--bad:#ff9a92;--okbg:#14372a;--badbg:#44201e;--pend:#3b3315}}
+:root[data-theme="dark"]{--bg:#0f1426;--surface:#182038;--ink:#e8ecf8;--muted:#9aa6c4;--line:#2a3558;--accent:#f2a900;--accent-ink:#14213d;--mark:#f2a900;--ok:#6fd6a0;--bad:#ff9a92;--okbg:#14372a;--badbg:#44201e;--pend:#3b3315}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 Figtree,system-ui,sans-serif}
+main{max-width:720px;margin:0 auto;padding:20px 16px 48px}
+h1{font-size:1.6rem;margin:0 0 4px;letter-spacing:-.01em}
+h2{font-size:1.1rem;margin:0 0 10px}
+.sub{color:var(--muted);margin:0 0 14px}
+.note{background:var(--pend);border-radius:8px;padding:8px 12px;font-size:.9rem;margin-bottom:16px}
+nav{display:flex;gap:6px;border-bottom:2px solid var(--line);margin-bottom:18px;overflow-x:auto}
+nav button{background:none;border:0;padding:10px 14px;font:inherit;font-weight:500;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;white-space:nowrap}
+nav button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--mark)}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid var(--mark);outline-offset:2px}
+.panel[hidden]{display:none}
+.chat{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px;min-height:260px;max-height:420px;overflow-y:auto;display:flex;flex-direction:column;gap:10px}
+.msg{max-width:85%;padding:9px 13px;border-radius:12px}
+.me{align-self:flex-end;background:var(--accent);color:var(--accent-ink)}
+.bot{align-self:flex-start;background:var(--bg);border:1px solid var(--line)}
+.bot small{display:block;color:var(--muted);margin-top:4px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+.chip{background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font:inherit;font-size:.88rem;color:var(--ink);cursor:pointer}
+.row{display:flex;gap:8px}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:9px 11px;width:100%}
+.btn{background:var(--accent);color:var(--accent-ink);border:0;border-radius:8px;padding:9px 16px;font:inherit;font-weight:700;cursor:pointer;white-space:nowrap}
+.btn.ghost{background:none;color:var(--ink);border:1px solid var(--line)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:12px}
+.bal{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.bal div{flex:1 1 90px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px;text-align:center}
+.bal b{display:block;font-size:1.5rem}
+label{display:block;font-weight:500;margin:10px 0 4px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.item{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line);flex-wrap:wrap}
+.item:first-child{border-top:0}
+.tag{border-radius:999px;padding:2px 10px;font-size:.82rem;font-weight:700}
+.Pending{background:var(--pend)}.Approved{background:var(--okbg);color:var(--ok)}.Rejected{background:var(--badbg);color:var(--bad)}
+.empty{color:var(--muted);padding:8px 0}
+.err{color:var(--bad);margin:8px 0 0;min-height:1.2em}
+.bar{height:6px;border-radius:3px;background:var(--line);margin-top:6px}
+.bar i{display:block;height:100%;border-radius:3px;background:var(--mark)}
+</style>
+</head>
+<body>
+<main>
+<h1>PulseAI</h1>
+<p class="sub">An HR assistant for employees and managers.</p>
+<div class="note">Prototype with sample data only. Nothing here is a real policy or a real person.</div>
+<nav role="tablist">
+<button role="tab" aria-selected="true" data-tab="chat">Ask HR</button>
+<button role="tab" aria-selected="false" data-tab="leave">My leave</button>
+<button role="tab" aria-selected="false" data-tab="mgr">Manager approvals <span id="badge"></span></button>
+<button role="tab" aria-selected="false" data-tab="hr">HR hiring</button>
+<button role="tab" aria-selected="false" data-tab="upd">Updates</button>
+</nav>
+
+<section class="panel" id="chat">
+<h2>Ask an HR question</h2>
+<div class="chat" id="log" aria-live="polite"></div>
+<div class="chips" id="chips"></div>
+<div class="row"><input id="q" placeholder="Type your question" aria-label="Your question"><button class="btn" id="ask">Ask</button></div>
+</section>
+
+<section class="panel" id="leave" hidden>
+<h2>My leave</h2>
+<div class="bal" id="bal"></div>
+<div class="card">
+<h2>Request leave</h2>
+<label for="type">Leave type</label>
+<select id="type"><option>Casual</option><option>Sick</option><option>Earned</option></select>
+<div class="grid2"><div><label for="from">From</label><input type="date" id="from"></div><div><label for="to">To</label><input type="date" id="to"></div></div>
+<label for="why">Reason</label>
+<textarea id="why" rows="2" placeholder="Short reason for your manager"></textarea>
+<p class="err" id="err" role="alert"></p>
+<button class="btn" id="send">Send request</button>
+</div>
+<div class="card"><h2>My requests</h2><div id="mine"></div></div>
+</section>
+
+<section class="panel" id="mgr" hidden>
+<h2>Requests waiting for you</h2>
+<div class="card" id="pending"></div>
+<div class="card"><h2>Decided</h2><div id="done"></div></div>
+</section>
+
+<section class="panel" id="hr" hidden>
+<h2>Write a job description</h2>
+<div class="card">
+<label for="jt">Job title</label><input id="jt" placeholder="Backend developer">
+<div class="grid2"><div><label for="jy">Years of experience</label><input id="jy" type="number" min="0" value="3"></div><div><label for="jl">Location</label><input id="jl" placeholder="Remote"></div></div>
+<label for="js">Key skills, separated by commas</label><input id="js" placeholder="python, sql, flask">
+<p class="err" id="jerr" role="alert"></p>
+<button class="btn" id="gen">Generate job description</button>
+<div id="jdout" style="margin-top:12px"></div>
+</div>
+<div class="card"><h2>Match a resume</h2>
+<label for="rn">Candidate name</label><input id="rn" placeholder="Candidate name">
+<label for="rt">Paste resume text</label><textarea id="rt" rows="4" placeholder="Paste skills and experience, for example: 4 years of experience in Python, SQL and AWS"></textarea>
+<p class="err" id="rerr" role="alert"></p>
+<button class="btn" id="radd">Add and match</button></div>
+<div class="card"><h2>Candidates ranked by match</h2><p class="sub">Scores compare skills and experience only. A person makes the final call.</p><div id="cands"></div></div>
+<div class="card"><h2>Onboarding checklist</h2><p class="sub">New joiner: Aditi Verma (sample)</p><div id="onb"></div></div>
+<div class="card"><h2>Offboarding checklist</h2><p class="sub">Leaving: Rahul Das (sample). Steps unlock in order.</p><div id="off"></div></div>
+<div class="card"><h2>Generate a letter</h2>
+<label for="lt">Letter type</label><select id="lt"><option>Offer letter</option><option>Experience letter</option><option>Relieving letter</option></select>
+<label for="ln">Employee name</label><input id="ln" placeholder="Employee name">
+<p class="err" id="lerr" role="alert"></p>
+<button class="btn" id="lgen">Generate letter</button><div id="lout" style="margin-top:12px"></div></div>
+</section>
+
+<section class="panel" id="upd" hidden>
+<h2>Updates</h2>
+<div class="card"><h2>Notifications</h2><div id="notes"></div></div>
+<div class="card"><h2>Upcoming birthdays</h2><div id="bdays"></div></div>
+<div class="card"><h2>Send feedback to HR</h2>
+<label for="fc">Topic</label><select id="fc"><option>Workplace</option><option>My manager</option><option>A policy</option><option>Something else</option></select>
+<label for="fm">Your feedback</label><textarea id="fm" rows="3" placeholder="What would you like HR to know?"></textarea>
+<p class="err" id="ferr" role="alert"></p><button class="btn" id="fsend">Send feedback</button><p id="fok" class="sub"></p></div>
+</section>
+</main>
+
+<script>
+var POLICIES=[
+{k:["casual","cl"],t:"Casual leave",a:"You get 12 casual leave days a year. Apply at least one day ahead, and your manager approves it."},
+{k:["sick","medical","doctor","ill"],t:"Sick leave",a:"You get 8 sick leave days a year. For more than 2 days in a row, attach a doctor’s note."},
+{k:["earned","privilege","encash","carry"],t:"Earned leave",a:"You earn 15 days a year. Up to 30 unused days carry over, and the rest lapse at year end."},
+{k:["notice","resign","resignation","quit"],t:"Notice period",a:"The notice period is 60 days. It can be shortened if your manager and HR agree."},
+{k:["wfh","remote","home","hybrid"],t:"Work from home",a:"You can work from home 2 days a week. Agree the days with your manager each month."},
+{k:["reimburse","expense","claim","travel"],t:"Reimbursement",a:"Submit expense claims with bills within 30 days. Payment comes with the next salary."}
+];
+var SUGGEST=["How many casual leaves do I get?","What is the notice period?","Can I work from home?","Do sick leaves need a note?"];
+var bal={Casual:12,Sick:8,Earned:15};
+var reqs=[
+{id:1,who:"Riya (sample)",type:"Casual",from:"2026-11-05",to:"2026-11-06",days:2,why:"Family function",status:"Pending",mine:false},
+{id:2,who:"Arjun (sample)",type:"Sick",from:"2026-11-10",to:"2026-11-10",days:1,why:"Fever",status:"Pending",mine:false}
+];
+var nextId=3;
+function $(i){return document.getElementById(i)}
+function el(tag,cls,txt){var e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e}
+
+document.querySelectorAll("nav button").forEach(function(b){b.onclick=function(){
+document.querySelectorAll("nav button").forEach(function(x){x.setAttribute("aria-selected",x===b)});
+document.querySelectorAll(".panel").forEach(function(p){p.hidden=p.id!==b.dataset.tab})}});
+
+function say(text,who,extra){var m=el("div","msg "+who,text);if(extra)m.appendChild(extra);$("log").appendChild(m);$("log").scrollTop=1e6;return m}
+function botNote(t){var s=el("small",null,t);return s}
+function answer(q){
+var s=q.toLowerCase(),best=null,top=0;
+POLICIES.forEach(function(p){var n=0;p.k.forEach(function(w){if(s.indexOf(w)>-1)n++});if(n>top){top=n;best=p}});
+if(best){say(best.a,"bot",botNote("From: "+best.t+" policy (sample)"));return}
+var m=say("I’m not sure about that one, so I won’t guess.","bot");
+var b=el("button","btn ghost","Send this to HR");b.style.marginTop="8px";b.style.display="block";
+b.onclick=function(){b.remove();say("Sent to HR with your question. They will reply here (sample).","bot")};
+m.appendChild(b)}
+function ask(){var v=$("q").value.trim();if(!v)return;say(v,"me");$("q").value="";answer(v)}
+$("ask").onclick=ask;$("q").onkeydown=function(e){if(e.key==="Enter")ask()};
+SUGGEST.forEach(function(t){var c=el("button","chip",t);c.onclick=function(){say(t,"me");answer(t)};$("chips").appendChild(c)});
+say("Hi, I’m the PulseAI assistant. Ask me about leave, notice period, work from home or expenses.","bot");
+
+function days(a,b){return Math.round((new Date(b)-new Date(a))/864e5)+1}
+function tag(s){return el("span","tag "+s,s)}
+function render(){
+$("bal").textContent="";
+Object.keys(bal).forEach(function(k){var d=el("div");d.appendChild(el("b",null,bal[k]));d.appendChild(el("span",null,k+" left"));$("bal").appendChild(d)});
+var mine=reqs.filter(function(r){return r.mine});$("mine").textContent="";
+if(!mine.length)$("mine").appendChild(el("div","empty","No requests yet. Send one above."));
+mine.slice().reverse().forEach(function(r){var i=el("div","item");i.appendChild(el("span",null,r.type+", "+r.from+" to "+r.to+" ("+r.days+" day"+(r.days>1?"s":"")+")"));i.appendChild(tag(r.status));$("mine").appendChild(i)});
+var pend=reqs.filter(function(r){return r.status==="Pending"&&!r.mine||r.status==="Pending"&&r.mine});
+$("pending").textContent="";
+if(!pend.length)$("pending").appendChild(el("div","empty","All caught up. No requests waiting."));
+pend.forEach(function(r){var i=el("div","item"),l=el("div");l.appendChild(el("b",null,(r.mine?"You (test request)":r.who)));l.appendChild(el("div",null,r.type+", "+r.from+" to "+r.to+" ("+r.days+" day"+(r.days>1?"s":"")+")"));l.appendChild(el("div","sub",r.why||"No reason given"));
+var a=el("div","row"),ok=el("button","btn","Approve"),no=el("button","btn ghost","Reject");
+ok.onclick=function(){decide(r,"Approved")};no.onclick=function(){decide(r,"Rejected")};a.appendChild(ok);a.appendChild(no);i.appendChild(l);i.appendChild(a);$("pending").appendChild(i)});
+var dn=reqs.filter(function(r){return r.status!=="Pending"});$("done").textContent="";
+if(!dn.length)$("done").appendChild(el("div","empty","Nothing decided yet."));
+dn.forEach(function(r){var i=el("div","item");i.appendChild(el("span",null,(r.mine?"You":r.who)+": "+r.type+", "+r.from+" to "+r.to));i.appendChild(tag(r.status));$("done").appendChild(i)});
+$("badge").textContent=pend.length?"("+pend.length+")":""}
+function decide(r,s){r.status=s;if(r.mine)addNote("Your "+r.type.toLowerCase()+" leave ("+r.from+" to "+r.to+") was "+s.toLowerCase()+".");if(s==="Approved"&&r.mine)bal[r.type]=Math.max(0,bal[r.type]-r.days);render()}
+$("send").onclick=function(){
+var f=$("from").value,t=$("to").value;$("err").textContent="";
+if(!f||!t){$("err").textContent="Choose both a start and an end date.";return}
+if(t<f){$("err").textContent="The end date must be on or after the start date.";return}
+var d=days(f,t),ty=$("type").value;
+if(d>bal[ty]){$("err").textContent="You only have "+bal[ty]+" "+ty.toLowerCase()+" days left.";return}
+reqs.push({id:nextId++,who:"You",type:ty,from:f,to:t,days:d,why:$("why").value.trim(),status:"Pending",mine:true});
+$("why").value="";render()};
+var CANDS=[{n:"Neha Sharma",y:4,s:["python","sql","flask","aws"],st:"New"},{n:"Karan Mehta",y:2,s:["javascript","react","css","html"],st:"New"},{n:"Sana Iqbal",y:6,s:["python","machine learning","sql","docker"],st:"New"},{n:"Vikram Rao",y:3,s:["java","spring","sql","aws"],st:"New"},{n:"Pooja Nair",y:5,s:["python","flask","react","docker","sql"],st:"New"}];
+var jd=null;
+function line(t,b){var p=el("p",null,t);p.style.margin="4px 0";if(b)p.style.fontWeight="700";$("jdout").appendChild(p)}
+$("gen").onclick=function(){
+var t=$("jt").value.trim(),y=parseInt($("jy").value,10),sk=$("js").value.split(",").map(function(s){return s.trim().toLowerCase()}).filter(Boolean);
+$("jerr").textContent="";
+if(!t||!sk.length||isNaN(y)){$("jerr").textContent="Add a job title, years of experience and at least one skill.";return}
+var loc=$("jl").value.trim()||"Remote";jd={title:t,years:y,skills:sk};
+$("jdout").textContent="";
+line(t+" ("+loc+")",1);
+line("About the role",1);
+line("You’ll join our team to build and maintain products that employees and customers use every day.");
+line("What you’ll do",1);
+sk.slice(0,4).forEach(function(k){line("• Work with "+k+" to deliver reliable features")});
+line("What we’re looking for",1);
+line("• "+y+"+ years of relevant experience");
+line("• Hands-on skills in "+sk.join(", "));
+line("This is a sample draft. A recruiter reviews and edits it before posting.");
+renderCands()};
+function score(c){var m=c.s.filter(function(k){return jd.skills.indexOf(k)>-1});return {sc:Math.round(m.length/jd.skills.length*80+Math.min(c.y/Math.max(jd.years,1),1)*20),m:m}}
+function renderCands(){var box=$("cands");box.textContent="";
+if(!jd){box.appendChild(el("div","empty","Generate a job description above to see match scores."));return}
+CANDS.map(function(c){var r=score(c);return {c:c,sc:r.sc,m:r.m}}).sort(function(a,b){return b.sc-a.sc}).forEach(function(r){
+var i=el("div","item"),l=el("div");l.style.flex="1 1 220px";
+l.appendChild(el("b",null,r.c.n+(r.c.add?"":" (sample)")));
+l.appendChild(el("div","sub",r.c.y+" yrs, matched: "+(r.m.join(", ")||"none")));
+var miss=jd.skills.filter(function(k){return r.m.indexOf(k)<0});if(miss.length)l.appendChild(el("div","sub","Missing: "+miss.join(", ")));
+var bar=el("div","bar"),f=el("i");f.style.width=r.sc+"%";bar.appendChild(f);l.appendChild(bar);
+var s=el("select");["New","Shortlisted","Rejected"].forEach(function(o){var op=el("option",null,o);if(o===r.c.st)op.selected=true;s.appendChild(op)});
+s.style.width="auto";s.setAttribute("aria-label","Status for "+r.c.n);s.onchange=function(){r.c.st=s.value};
+i.appendChild(l);i.appendChild(el("span","tag Pending",r.sc+"% match"));i.appendChild(s);box.appendChild(i)})}
+var VOCAB=["python","sql","flask","aws","javascript","react","css","html","java","spring","docker","machine learning","node","typescript","django","excel","power bi","tableau","communication"];
+function parseYears(t){var w=t.split(" ").filter(Boolean),y=0;w.forEach(function(x,i){if((x==="years"||x==="yrs"||x==="year")&&i>0){var n=parseInt(w[i-1],10);if(!isNaN(n)&&n>y)y=n}});return y}
+$("radd").onclick=function(){
+$("rerr").textContent="";
+if(!jd){$("rerr").textContent="Generate a job description first, so there is something to match against.";return}
+var n=$("rn").value.trim(),raw=$("rt").value.trim();
+if(!n||!raw){$("rerr").textContent="Add a candidate name and paste some resume text.";return}
+var t=" "+raw.toLowerCase().replace(/[^a-z0-9+#.]/g," ")+" ";
+var sk=VOCAB.concat(jd.skills).filter(function(k,i,a){return a.indexOf(k)===i&&t.indexOf(" "+k+" ")>-1});
+CANDS.push({n:n,y:parseYears(t),s:sk,st:"New",add:true});
+$("rn").value="";$("rt").value="";renderCands()};
+var ONB=["Collect signed offer and documents","Create email and system accounts","Assign a manager and a buddy","Issue laptop and ID card","Share leave and HR policies","Hold a day-one welcome call"].map(function(t){return {t:t,d:false}});
+var OFF=["Collect company assets (laptop, ID card)","Revoke system and email access","Hold exit interview and finalise paperwork"].map(function(t){return {t:t,d:false}});
+function chk(list,box,seq){box.textContent="";var done=list.filter(function(x){return x.d}).length;
+list.forEach(function(x,i){var locked=seq&&i>0&&!list[i-1].d&&!x.d;var row=el("label","item");row.style.fontWeight="400";row.style.margin="0";row.style.justifyContent="flex-start";
+var c=document.createElement("input");c.type="checkbox";c.checked=x.d;c.disabled=locked;c.style.width="auto";
+c.onchange=function(){x.d=c.checked;if(seq&&!x.d){for(var j=i+1;j<list.length;j++)list[j].d=false}chk(list,box,seq)};
+var s=el("span",null,x.t+(locked?" (unlocks after the step above)":""));if(locked)s.style.color="var(--muted)";
+row.appendChild(c);row.appendChild(s);box.appendChild(row)});
+box.appendChild(el("div","sub",done+" of "+list.length+" done"))}
+var LET={"Offer letter":["We are pleased to offer you a position at our company.","Please confirm your acceptance and joining date by replying to this letter."],"Experience letter":["This is to certify that you worked with our company and served with dedication.","We wish you the very best in your future work."],"Relieving letter":["Your resignation has been accepted and you are relieved from your duties.","Thank you for your contributions to the team."]};
+$("lgen").onclick=function(){var n=$("ln").value.trim();$("lerr").textContent="";
+if(!n){$("lerr").textContent="Enter the employee’s name.";return}
+var o=$("lout");o.textContent="";var p=function(t,b){var e=el("p",null,t);e.style.margin="4px 0";if(b)e.style.fontWeight="700";o.appendChild(e)};
+var ty=$("lt").value;p(ty,1);p(new Date().toLocaleDateString("en-IN"));p("Dear "+n+",");LET[ty].forEach(function(l){p(l)});p("HR team");p("Sample letter for demonstration only.")};
+var NOTES=[{t:"Welcome to PulseAI (sample notification).",x:"Today"}];
+function renderNotes(){var b=$("notes");b.textContent="";NOTES.forEach(function(n){var i=el("div","item");i.appendChild(el("span",null,n.t));i.appendChild(el("span","sub",n.x));b.appendChild(i)})}
+function addNote(t){NOTES.unshift({t:t,x:"Just now"});renderNotes()}
+[["Riya (sample)","Nov 8"],["Arjun (sample)","Nov 19"],["Neha (sample)","Nov 27"]].forEach(function(b){var i=el("div","item");i.appendChild(el("span",null,b[0]));i.appendChild(el("span","sub",b[1]));$("bdays").appendChild(i)});
+$("fsend").onclick=function(){$("ferr").textContent="";$("fok").textContent="";
+if(!$("fm").value.trim()){$("ferr").textContent="Write your feedback before sending.";return}
+$("fm").value="";$("fok").textContent="Sent to HR. Thank you (sample)."};
+chk(ONB,$("onb"),false);chk(OFF,$("off"),true);renderNotes();
+render();renderCands();
+</script>
+</body>
+</html>
